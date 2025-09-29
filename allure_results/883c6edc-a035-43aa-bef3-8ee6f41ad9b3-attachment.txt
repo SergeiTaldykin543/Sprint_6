@@ -1,3 +1,0 @@
-✅ Firefox driver created using system PATH
-🌐 New window URL: https://sso.dzen.ru/install?uuid=41018498-9688-4d53-966c-7d939861f87d
-✅ Successfully redirected to Yandex/Dzen via logo
