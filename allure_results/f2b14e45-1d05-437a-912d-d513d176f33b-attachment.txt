@@ -1,0 +1,43 @@
+✅ Firefox driver created using system PATH
+🚀 Starting order test: Dataset 2
+✅ Main page opened
+✅ Top order button clicked
+📝 Filling personal info for Мария Иванова
+📝 Filling personal info: Мария Иванова
+  ✅ First name: Мария
+  ✅ Last name: Иванова
+  ✅ Address: пр. Мира, д. 15
+  ✅ Phone: +79997654321
+🚇 Selecting metro station: Красные Ворота
+🚇 Selecting metro station: Красные Ворота
+✅ Metro station selected: Красные Ворота
+✅ All personal info filled successfully
+➡️ Clicking next button
+✅ Second page element found: ('xpath', "//div[contains(text(), 'Про аренду')]")
+✅ Successfully moved to second page
+📦 Filling rental info for order
+📅 Filling rental info: 29.09.2025, двое суток, grey
+✅ Date filled: 29.09.2025
+📅 Calendar is open, closing it...
+✅ Calendar closed with Escape key
+⏱️ Selecting rental period: двое суток
+Found 7 rental period options
+🎯 Selecting: двое суток
+✅ Rental period selected: двое суток
+✅ Color selected: grey
+✅ Comment filled: Тестовый заказ 2
+✅ All rental info filled successfully
+🛒 Clicking order button...
+🛒 Clicking order button
+✅ Found order button with locator: ('xpath', "//button[contains(text(), 'Заказать') and @class='Button_Button__ra12g Button_Middle__1CSJM']")
+✅ Order button clicked
+✅ Confirming order...
+✅ Confirming order
+✅ Confirmation modal appeared
+✅ Found confirm button with locator: ('xpath', "//button[contains(text(), 'Да')]")
+✅ Order confirmed
+✅ Success message appeared
+📋 Success message displayed: Заказ оформлен
+Номер заказа: .  Запишите его:
+пригодится, чтобы отслеживать статус
+✅ Order completed successfully!

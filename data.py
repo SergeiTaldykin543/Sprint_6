@@ -34,12 +34,12 @@ class OrderData:
             "personal_info": {
                 "first_name": "Сергей",
                 "last_name": "Талдыкин",
-                "address": "ул. Свободы, д. 5",
+                "address": "ул. Ленина, д. 1",
                 "metro_station": "Сокольники",
                 "phone": "+79991234567"
             },
             "rental_info": {
-                "date": "29.09.2025",
+                "date": "28.09.2025",
                 "rental_period": "сутки",
                 "color": "black",
                 "comment": "Тестовый заказ 1"
@@ -52,11 +52,11 @@ class OrderData:
                 "first_name": "Мария",
                 "last_name": "Иванова",
                 "address": "пр. Мира, д. 15",
-                "metro_station": "Красные Ворота", 
+                "metro_station": "Красные Ворота",
                 "phone": "+79997654321"
             },
             "rental_info": {
-                "date": "30.09.2025",
+                "date": "29.09.2025",
                 "rental_period": "двое суток",
                 "color": "grey",
                 "comment": "Тестовый заказ 2"
@@ -68,19 +68,15 @@ class OrderData:
             "personal_info": {
                 "first_name": "Алексей",
                 "last_name": "Петров",
-                "address": "ул. Тверская, д. 25",
+                "address": "ул. Тверская, д. 10",
                 "metro_station": "Чеховская",
                 "phone": "+79998887766"
             },
             "rental_info": {
-                "date": "01.10.2025",
+                "date": "30.09.2025",
                 "rental_period": "трое суток", 
                 "color": "black",
                 "comment": "Заказ через нижнюю кнопку"
             }
         }
     ]
-
-    METRO_STATIONS = ["Сокольники", "Красные Ворота", "Чеховская", "Лубянка", "Охотный ряд"]
-    RENTAL_PERIODS = ["сутки", "двое суток", "трое суток", "четверо суток", "пятеро суток", "шестеро суток", "семеро суток"]
-    COLORS = ["black", "grey"]

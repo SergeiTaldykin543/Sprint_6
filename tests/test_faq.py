@@ -7,7 +7,7 @@ import data
 @allure.feature('FAQ Section')
 class TestFAQ:
     
-    @allure.title('Test FAQ question: {question_data[question]}')
+    @allure.title('Test FAQ questions')
     @pytest.mark.parametrize('question_data', data.FAQData.QUESTIONS_AND_ANSWERS)
     def test_faq_question_answer(self, driver, question_data):
         with allure.step('Open main page'):

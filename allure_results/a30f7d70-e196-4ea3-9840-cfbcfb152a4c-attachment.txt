@@ -1,0 +1,3 @@
+✅ Firefox driver created using system PATH
+🖱️  Clicking FAQ question: Вы привозите зарядку вместе с самокатом?
+✅ Question clicked via JavaScript
