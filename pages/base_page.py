@@ -18,17 +18,14 @@ class BasePage:
         return self.wait.until(EC.presence_of_all_elements_located(locator))
 
     def click_element(self, locator):
-        """Улучшенный клик с обработкой перекрытия элементов"""
         element = self.wait.until(EC.element_to_be_clickable(locator))
         
         try:
             element.click()
         except ElementClickInterceptedException:
-            print(f"⚠️  Element intercepted, trying JavaScript click...")
             self.driver.execute_script("arguments[0].click();", element)
 
     def click_element_js(self, locator):
-        """Клик через JavaScript (обходит перекрытие)"""
         element = self.find_element(locator)
         self.driver.execute_script("arguments[0].click();", element)
 
@@ -45,7 +42,6 @@ class BasePage:
         return self.wait.until(EC.presence_of_all_elements_located(locator))
 
     def scroll_to_element(self, locator):
-        """Прокрутка к элементу"""
         element = self.find_element(locator)
         self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
 
@@ -61,7 +57,5 @@ class BasePage:
             return False
 
     def wait_for_page_load(self, timeout=10):
-        """Ожидание загрузки страницы"""
         return WebDriverWait(self.driver, timeout).until(
-            lambda driver: driver.execute_script("return document.readyState") == "complete"
-        )
+            lambda driver: driver.execute_script("return document.readyState") == "complete")
