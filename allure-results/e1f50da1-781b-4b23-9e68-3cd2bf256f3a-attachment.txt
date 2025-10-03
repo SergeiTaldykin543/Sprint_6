@@ -1,2 +1,0 @@
-✅ Firefox driver created using system PATH
-✅ Successfully redirected to main page via scooter logo

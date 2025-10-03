@@ -2,32 +2,17 @@ import pytest
 import allure
 from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
-import os
+from selenium.common.exceptions import WebDriverException
+import sys
 
 
 @pytest.fixture(scope="function")
 def driver():
     with allure.step("Запуск браузера Firefox"):
-        try:
-            service = Service()
-            driver = webdriver.Firefox(service=service)
-        except Exception as e:
-            geckodriver_path = "C:/WebDriver/geckodriver.exe"
-            
-            if os.path.exists(geckodriver_path):
-                service = Service(geckodriver_path)
-                driver = webdriver.Firefox(service=service)
-            else:
-                try:
-                    from selenium.webdriver.chrome.service import Service as ChromeService
-                    from webdriver_manager.chrome import ChromeDriverManager
-                    
-                    service = ChromeService(ChromeDriverManager().install())
-                    driver = webdriver.Chrome(service=service)
-                except:
-                    raise Exception("Cannot create any WebDriver. Please install Firefox or Chrome driver manually.")
+        driver = _create_firefox_driver()
     
-    driver.maximize_window()
+    with allure.step("Максимизация окна браузера"):
+        driver.maximize_window()
     
     yield driver
     
@@ -35,29 +20,39 @@ def driver():
         driver.quit()
 
 
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    outcome = yield
-    report = outcome.get_result()
-    
-    if report.when == "call" and report.failed:
-        driver = item.funcargs.get('driver')
-        if driver:
-            try:
-                screenshot = driver.get_screenshot_as_png()
-                
-                allure.attach(
-                    screenshot,
-                    name="screenshot_on_failure",
-                    attachment_type=allure.attachment_type.PNG
-                )
-                
-                page_source = driver.page_source
-                allure.attach(
-                    page_source,
-                    name="page_source_on_failure", 
-                    attachment_type=allure.attachment_type.HTML
-                )
-                
-            except Exception as e:
-                pass
+def _create_firefox_driver():
+    try:
+        service = Service()
+        return webdriver.Firefox(service=service)
+    except WebDriverException as e:
+        return _try_webdriver_manager_fallback(e)
+
+
+def _try_webdriver_manager_fallback(original_exception):
+    try:
+        import importlib
+        importlib.import_module('webdriver_manager')
+        
+        from webdriver_manager.firefox import GeckoDriverManager
+        service = Service(GeckoDriverManager().install())
+        return webdriver.Firefox(service=service)
+    except ImportError:
+        error_message = (
+            "Не удалось запустить Firefox WebDriver.\n"
+            "Решения:\n"
+            "1. Установите geckodriver и добавьте его в системную переменную PATH\n"
+            "2. Или установите пакет: pip install webdriver-manager\n"
+            "3. Убедитесь, что Firefox установлен в системе\n"
+            f"Оригинальная ошибка: {original_exception}"
+        )
+        raise WebDriverException(error_message) from original_exception
+    except WebDriverException as e:
+        error_message = (
+            "Не удалось запустить Firefox WebDriver даже через webdriver-manager.\n"
+            "Убедитесь, что:\n"
+            "1. Firefox установлен в системе\n" 
+            "2. Имеется подключение к интернету для загрузки драйвера\n"
+            f"Ошибка webdriver-manager: {e}\n"
+            f"Оригинальная ошибка: {original_exception}"
+        )
+        raise WebDriverException(error_message) from e

@@ -1,3 +1,0 @@
-✅ Firefox driver created using system PATH
-🖱️  Clicking FAQ question: Можно ли заказать самокат прямо на сегодня?
-✅ Question clicked via JavaScript

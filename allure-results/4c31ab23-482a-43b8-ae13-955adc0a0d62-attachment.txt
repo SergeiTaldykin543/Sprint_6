@@ -1,3 +1,0 @@
-✅ Firefox driver created using system PATH
-🖱️  Clicking FAQ question: Сколько это стоит? И как оплатить?
-✅ Question clicked via JavaScript

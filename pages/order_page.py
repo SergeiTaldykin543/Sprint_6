@@ -1,10 +1,10 @@
 # order_page.py
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
 from .base_page import BasePage
 import urls
+import allure
 
 
 class OrderPage(BasePage):
@@ -32,268 +32,229 @@ class OrderPage(BasePage):
     METRO_OPTION_BUTTON = (By.XPATH, ".//button")
 
     CALENDAR = (By.CLASS_NAME, "react-datepicker")
+    SCOOTER_LOGO = (By.CLASS_NAME, "Header_LogoScooter__3lsAR")
+    
+    # Локаторы для cookie-баннера
+    COOKIE_BANNER = (By.CLASS_NAME, "App_CookieConsent__1yUIN")
+    COOKIE_CONFIRM_BUTTON = (By.ID, "rcc-confirm-button")
 
     def __init__(self, driver):
         super().__init__(driver)
         self.url = urls.ORDER_PAGE_URL
 
+    @allure.step("Открыть страницу заказа")
     def open(self):
         self.driver.get(self.url)
         self.wait_for_element_visible((By.CLASS_NAME, "Order_Header__BZXOb"))
+        self.close_cookie_banner()
 
-    def check_for_validation_errors(self):
-        error_elements = self.driver.find_elements(*self.ERROR_MESSAGES)
-        visible_errors = []
+    @allure.step("Дождаться загрузки формы заказа")
+    def wait_for_order_form_loaded(self):
+        form_elements = [
+            self.FIRST_NAME_INPUT,
+            self.LAST_NAME_INPUT,
+            self.ADDRESS_INPUT,
+            (By.CLASS_NAME, "Order_Header__BZXOb")]
         
-        for error in error_elements:
-            if error.is_displayed() and error.text.strip():
-                visible_errors.append(error.text)
+        for element_locator in form_elements:
+            self.wait_for_element_visible(element_locator)
         
-        return bool(visible_errors)
+        self.wait.until(lambda driver: driver.find_element(*self.FIRST_NAME_INPUT).is_enabled())
 
-    def fill_personal_info(self, first_name, last_name, address, metro_station, phone):
+    @allure.step("Закрыть cookie-баннер")
+    def close_cookie_banner(self):
         try:
-            fields_to_fill = [
-                (self.FIRST_NAME_INPUT, first_name),
-                (self.LAST_NAME_INPUT, last_name),
-                (self.ADDRESS_INPUT, address),
-                (self.PHONE_INPUT, phone)
-            ]
+            cookie_banner = self.find_elements(self.COOKIE_BANNER)
+            if cookie_banner and cookie_banner[0].is_displayed():
+                confirm_button = self.wait_for_element_clickable(self.COOKIE_CONFIRM_BUTTON)
+                confirm_button.click()
+                self.wait_for_element_not_visible(self.COOKIE_BANNER)
+        except Exception:
+            pass
+
+    @allure.step("Заполнить полную форму заказа")
+    def fill_complete_order_form(self, order_data):
+        personal_info = order_data['personal_info']
+        
+        self.fill_personal_info_simple(
+            personal_info['first_name'],
+            personal_info['last_name'],
+            personal_info['address'],
+            personal_info['metro_station'],
+            personal_info['phone'])
+
+        self.click_next_button_safe()
+
+        rental_info = order_data['rental_info']
+        self.fill_rental_info(
+            rental_info['date'],
+            rental_info['rental_period'],
+            rental_info['color'],
+            rental_info['comment'])
+        
+        self.click_order_button_safe()
+        self.confirm_order_safe()
+
+    @allure.step("Заполнить личную информацию (упрощенная версия)")
+    def fill_personal_info_simple(self, first_name, last_name, address, metro_station, phone):
+        self.fill_field_safe(self.FIRST_NAME_INPUT, first_name)
+        self.fill_field_safe(self.LAST_NAME_INPUT, last_name)
+        self.fill_field_safe(self.ADDRESS_INPUT, address)
+        self.fill_field_safe(self.PHONE_INPUT, phone)
+        
+        self.select_metro_station_safe(metro_station)
+
+    @allure.step("Заполнить поле: {value}")
+    def fill_field_safe(self, locator, value):
+        field = self.wait_for_element_clickable(locator)
+        field.clear()
+        field.send_keys(value)
+        self.wait_for_element_value(locator, value)
+
+    @allure.step("Выбрать станцию метро: '{station_name}' (безопасная версия)")
+    def select_metro_station_safe(self, station_name):
+        metro_field = self.wait_for_element_clickable(self.METRO_STATION_INPUT)
+        
+        self.scroll_to_element_safe(self.METRO_STATION_INPUT)
+        metro_field.click()
+        
+        self.wait_for_element_visible(self.METRO_DROPDOWN_OPTIONS)
+        
+        metro_field.send_keys(station_name)
+        
+        self.wait_for_elements_present(self.METRO_DROPDOWN_OPTIONS)
+        station_options = self.find_elements(self.METRO_DROPDOWN_OPTIONS)
+        
+        if station_options:
+            first_option = station_options[0]
+            button = first_option.find_element(*self.METRO_OPTION_BUTTON)
+            self.scroll_to_element_safe(button)
+            button.click()
+
+    @allure.step("Нажать кнопку 'Далее' (безопасная версия)")
+    def click_next_button_safe(self):
+        self.close_cookie_banner()
+        self.scroll_to_element_safe(self.NEXT_BUTTON)
+
+        next_button = self.wait_for_element_fully_clickable(self.NEXT_BUTTON)
+        next_button.click()
+        
+        self.wait_for_second_page()
+
+    def scroll_to_element_safe(self, locator_or_element):
+        if isinstance(locator_or_element, tuple):
+            element = self.find_element(locator_or_element)
+        else:
+            element = locator_or_element
             
-            for locator, value in fields_to_fill:
-                field = self.wait.until(EC.element_to_be_clickable(locator))
-                field.clear()
-                field.send_keys(value)
-                
-                WebDriverWait(self.driver, 2).until(lambda driver: field.get_attribute('value') == value)
-                
-                if self.check_for_validation_errors():
-                    return False
-            
-            metro_success = self.select_metro_station(metro_station)
-            if not metro_success:
-                return False
-            
-            if self.check_for_validation_errors():
-                return False
-                
+        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'center'});", element)
+
+    def wait_for_element_fully_clickable(self, locator, timeout=10):
+        element = self.wait_for_element_visible(locator, timeout)
+        
+        self.wait.until(lambda driver: element.is_displayed() and element.is_enabled() and self._is_element_not_obscured(element))
+        return element
+
+    def _is_element_not_obscured(self, element):
+        try:
+            element_rect = element.rect
+            element_center_x = element_rect['x'] + element_rect['width'] / 2
+            element_center_y = element_rect['y'] + element_rect['height'] / 2
+            element_at_point = self.driver.execute_script("return document.elementFromPoint(arguments[0], arguments[1]);",element_center_x, element_center_y)
+
+            return element == element_at_point or element == element_at_point.find_element(By.XPATH, "./ancestor-or-self::*[. = current()]")
+        except:
             return True
-            
-        except Exception:
-            return False
 
-    def select_metro_station(self, station_name):
-        try:
-            metro_field = self.wait.until(EC.element_to_be_clickable(self.METRO_STATION_INPUT))
-            metro_field.click()
-            
-            WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(self.METRO_DROPDOWN_OPTIONS))
-            
-            metro_field.send_keys(station_name)
-            
-            WebDriverWait(self.driver, 5).until(lambda driver: len(driver.find_elements(*self.METRO_DROPDOWN_OPTIONS)) > 0)
-            
-            station_options = self.driver.find_elements(*self.METRO_DROPDOWN_OPTIONS)
-            station_found = False
-            
-            for option in station_options:
-                if station_name in option.text:
-                    button = option.find_element(*self.METRO_OPTION_BUTTON)
-                    button.click()
-                    station_found = True
-                    break
-            
-            if not station_found and station_options:
-                first_option = station_options[0]
-                button = first_option.find_element(*self.METRO_OPTION_BUTTON)
-                button.click()
-                station_found = True
-            
-            if station_found:
-                WebDriverWait(self.driver, 5).until(EC.invisibility_of_element_located(self.METRO_DROPDOWN_OPTIONS))
-                return True
-            else:
-                return False
-                
-        except Exception:
-            return False
+    def wait_for_second_page(self):
+        self.wait.until(
+            lambda driver: any([
+                self._is_element_present_and_visible(self.RENTAL_HEADER),
+                self._is_element_present_and_visible(self.DATE_INPUT),
+                self._is_element_present_and_visible(self.RENTAL_PERIOD_DROPDOWN)]))
 
-    def _is_first_page_visible(self):
+    def _is_element_present_and_visible(self, locator):
         try:
-            return WebDriverWait(self.driver, 3).until(EC.visibility_of_element_located(self.FIRST_NAME_INPUT)).is_displayed()
+            element = self.driver.find_element(*locator)
+            return element.is_displayed()
         except:
             return False
 
-    def _is_second_page_visible(self):
-        try:
-            second_page_elements = [
-                self.RENTAL_HEADER,
-                self.DATE_INPUT,
-                self.RENTAL_PERIOD_DROPDOWN
-            ]
-            
-            for element_locator in second_page_elements:
-                try:
-                    element = WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located(element_locator))
-                    if element.is_displayed():
-                        return True
-                except:
-                    continue
-            
-            return False
-        except Exception:
-            return False
+    @allure.step("Заполнить информацию об аренде")
+    def fill_rental_info(self, date, rental_period, color, comment):
+        self.fill_field_safe(self.DATE_INPUT, date)
+        self.close_calendar_if_visible()
+        self.select_rental_period_safe(rental_period)
+        if color == "black":
+            self.click_checkbox_safe(self.COLOR_BLACK_CHECKBOX)
+        elif color == "grey":
+            self.click_checkbox_safe(self.COLOR_GREY_CHECKBOX)
+        if comment:
+            self.fill_field_safe(self.COMMENT_INPUT, comment)
 
-    def click_next_button(self):
-        try:
-            if self.check_for_validation_errors():
-                return False
-            
-            next_button = self.wait.until(EC.element_to_be_clickable(self.NEXT_BUTTON))
-            
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", next_button)
-            
-            WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable(self.NEXT_BUTTON))
-            
-            next_button.click()
-            
-            try:
-                WebDriverWait(self.driver, 10).until(lambda driver: self._is_second_page_visible())
-                return True
-            except:
-                return False
-                
-        except Exception:
-            return False
+    @allure.step("Выбрать период аренды: '{rental_period}' (безопасная версия)")
+    def select_rental_period_safe(self, rental_period):
+        self.scroll_to_element_safe(self.RENTAL_PERIOD_DROPDOWN)
+        dropdown = self.wait_for_element_fully_clickable(self.RENTAL_PERIOD_DROPDOWN)
+        dropdown.click()
+        options = self.wait_for_elements_visible(self.RENTAL_PERIOD_OPTIONS)
+        
+        for option in options:
+            if rental_period in option.text:
+                self.scroll_to_element_safe(option)
+                clickable_option = self.wait_for_element_fully_clickable((By.XPATH, f"//div[contains(@class, 'Dropdown-option') and contains(text(), '{rental_period}')]"))
+                clickable_option.click()
+                return             
+        if options:
+            self.scroll_to_element_safe(options[0])
+            clickable_first_option = self.wait_for_element_fully_clickable(self.RENTAL_PERIOD_OPTIONS)
+            clickable_first_option.click()
 
+    @allure.step("Нажать чекбокс")
+    def click_checkbox_safe(self, locator):
+        checkbox = self.wait_for_element_fully_clickable(locator)
+        if not checkbox.is_selected():
+            self.scroll_to_element_safe(locator)
+            checkbox.click()
+
+    @allure.step("Закрыть календарь если открыт")
     def close_calendar_if_visible(self):
         try:
-            calendar = self.driver.find_elements(*self.CALENDAR)
+            calendar = self.find_elements(self.CALENDAR)
             if calendar and calendar[0].is_displayed():
-                date_field = self.driver.find_element(*self.DATE_INPUT)
+                date_field = self.find_element(self.DATE_INPUT)
                 date_field.send_keys(Keys.ESCAPE)
-                return True
-        except Exception:
-            pass
-        return False
-
-    def fill_rental_info(self, date, rental_period, color, comment):
-        try:
-            date_field = self.wait.until(EC.element_to_be_clickable(self.DATE_INPUT))
-            date_field.clear()
-            date_field.send_keys(date)
-            
-            WebDriverWait(self.driver, 5).until(lambda driver: date_field.get_attribute('value') == date)
-            
-            self.close_calendar_if_visible()
-            
-            self.select_rental_period(rental_period)
-            
-            if color == "black":
-                color_checkbox = self.wait.until(EC.element_to_be_clickable(self.COLOR_BLACK_CHECKBOX))
-                if not color_checkbox.is_selected():
-                    color_checkbox.click()
-            elif color == "grey":
-                color_checkbox = self.wait.until(EC.element_to_be_clickable(self.COLOR_GREY_CHECKBOX))
-                if not color_checkbox.is_selected():
-                    color_checkbox.click()
-            
-            comment_field = self.wait.until(EC.element_to_be_clickable(self.COMMENT_INPUT))
-            comment_field.clear()
-            comment_field.send_keys(comment)
-            
-            WebDriverWait(self.driver, 5).until(lambda driver: comment_field.get_attribute('value') == comment)
-            
-        except Exception as e:
-            raise
-
-    def select_rental_period(self, rental_period):
-        try:
-            dropdown = self.wait.until(EC.element_to_be_clickable(self.RENTAL_PERIOD_DROPDOWN))
-            
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", dropdown)
-            
-            WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable(self.RENTAL_PERIOD_DROPDOWN))
-            
-            dropdown.click()
-            
-            options = WebDriverWait(self.driver, 5).until(EC.visibility_of_all_elements_located(self.RENTAL_PERIOD_OPTIONS))
-            
-            option_found = False
-            for option in options:
-                if rental_period in option.text:
-                    WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, f"//div[contains(@class, 'Dropdown-option') and contains(text(), '{rental_period}')]")))
-                    option.click()
-                    option_found = True
-                    break
-            
-            if not option_found and options:
-                options[0].click()
-                
+                self.wait.until(EC.invisibility_of_element_located(self.CALENDAR))
         except Exception:
             pass
 
-    def click_order_button(self):
-        try:
-            order_button_locators = [
-                (By.XPATH, "//button[contains(text(), 'Заказать') and @class='Button_Button__ra12g Button_Middle__1CSJM']"),
-                (By.XPATH, "//button[contains(text(), 'Заказать')]"),
-                (By.CLASS_NAME, "Button_Middle__1CSJM")
-            ]
-            
-            order_button = None
-            for locator in order_button_locators:
-                try:
-                    order_button = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable(locator))
-                    if "Заказать" in order_button.text:
-                        break
-                    else:
-                        order_button = None
-                except:
-                    continue
-            
-            if not order_button:
-                raise Exception("Order button not found with any locator")
-            
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", order_button)
-            
-            WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable(order_button_locators[0]))
-            
-            order_button.click()
-            
-        except Exception as e:
-            raise
+    @allure.step("Нажать кнопку 'Заказать' (безопасная версия)")
+    def click_order_button_safe(self):
+        self.close_cookie_banner()
+        self.scroll_to_element_safe(self.ORDER_BUTTON)
+        order_button = self.wait_for_element_fully_clickable(self.ORDER_BUTTON)
+        order_button.click()
 
-    def confirm_order(self):
-        try:
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located((By.XPATH, "//div[contains(@class, 'Order_Modal')]")))
-            
-            confirm_button_locators = [
-                (By.XPATH, "//button[contains(text(), 'Да')]"),
-                (By.XPATH, "//div[contains(@class, 'Order_Modal')]//button[contains(text(), 'Да')]")]
-            
-            confirm_button = None
-            for locator in confirm_button_locators:
-                try:
-                    confirm_button = WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable(locator))
-                    break
-                except:
-                    continue
-            
-            if not confirm_button:
-                raise Exception("Confirm button not found")
-            
-            WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable(confirm_button_locators[0]))
-            
-            confirm_button.click()
-            
-            WebDriverWait(self.driver, 10).until(EC.visibility_of_element_located(self.SUCCESS_MESSAGE))
-            
-        except Exception as e:
-            raise
+    @allure.step("Подтвердить заказ (безопасная версия)")
+    def confirm_order_safe(self):
+        self.wait_for_element_visible((By.XPATH, "//div[contains(@class, 'Order_Modal')]"))
+        self.scroll_to_element_safe(self.CONFIRM_ORDER_BUTTON)
+        confirm_button = self.wait_for_element_fully_clickable(self.CONFIRM_ORDER_BUTTON)
+        confirm_button.click()
+        self.wait_for_element_visible(self.SUCCESS_MESSAGE)
 
+    @allure.step("Проверить отображение сообщения об успехе")
     def is_success_message_displayed(self):
-        try:
-            return self.is_element_visible(self.SUCCESS_MESSAGE)
-        except Exception:
-            return False
+        return self.is_element_visible(self.SUCCESS_MESSAGE)
+
+    @allure.step("Нажать логотип Самоката")
+    def click_scooter_logo(self):
+        self.click_element(self.SCOOTER_LOGO)
+
+    @allure.step("Нажать кнопку 'Далее'")
+    def click_next_button_simple(self):
+        return self.click_next_button_safe()
+
+    @allure.step("Заполнить личную информацию")
+    def fill_personal_info(self, first_name, last_name, address, metro_station, phone):
+        return self.fill_personal_info_simple(first_name, last_name, address, metro_station, phone)

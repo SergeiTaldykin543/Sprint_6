@@ -1,3 +1,0 @@
-✅ Firefox driver created using system PATH
-🖱️  Clicking FAQ question: Я жизу за МКАДом, привезёте?
-✅ Question clicked via JavaScript

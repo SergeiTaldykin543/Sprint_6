@@ -1,3 +1,0 @@
-✅ Firefox driver created using system PATH
-🖱️  Clicking FAQ question: Как рассчитывается время аренды?
-✅ Question clicked via JavaScript
