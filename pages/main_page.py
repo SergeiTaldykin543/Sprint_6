@@ -1,4 +1,3 @@
-# main_page.py
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from .base_page import BasePage
@@ -77,29 +76,20 @@ class MainPage(BasePage):
 
     @allure.step("Нажать нижнюю кнопку 'Заказать'")
     def click_order_button_bottom(self):
-        """Клик по нижней кнопке Заказать с ожиданием открытия формы"""
-        # Прокручиваем к нижней кнопке
         self.scroll_to_element(self.ORDER_BUTTON_BOTTOM)
-        
-        # Ждем пока кнопка станет кликабельной
+
         button = self.wait_for_element_clickable(self.ORDER_BUTTON_BOTTOM)
-        
-        # Кликаем и ждем открытия формы заказа
         button.click()
         self._wait_for_order_form_opened()
 
     def _wait_for_order_form_opened(self):
-        """Ожидание открытия формы заказа"""
-        # Ждем появления заголовка формы заказа
         try:
             self.wait.until(EC.url_contains("/order"))
         except:
-            # Если URL не изменился, проверяем наличие элементов формы заказа
             order_form_indicators = [
                 (By.CLASS_NAME, "Order_Header__BZXOb"),
                 (By.XPATH, "//input[@placeholder='* Имя']"),
-                (By.XPATH, "//input[@placeholder='* Фамилия']")
-            ]
+                (By.XPATH, "//input[@placeholder='* Фамилия']")]
             
             for indicator in order_form_indicators:
                 try:
@@ -108,7 +98,6 @@ class MainPage(BasePage):
                 except:
                     continue
             
-            # Если форма не открылась, пробуем обновить страницу и повторить
             self.driver.refresh()
             self.wait_for_element_visible((By.CLASS_NAME, "Order_Header__BZXOb"), timeout=10)
 
