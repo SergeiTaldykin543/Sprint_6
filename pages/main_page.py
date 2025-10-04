@@ -1,5 +1,4 @@
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
 from .base_page import BasePage
 import urls
 import allure
@@ -34,6 +33,11 @@ class MainPage(BasePage):
     SCOOTER_LOGO = (By.CLASS_NAME, "Header_LogoScooter__3lsAR")
     YANDEX_LOGO = (By.CLASS_NAME, "Header_LogoYandex__3TSOI")
 
+    # Локаторы для проверки открытия формы заказа
+    ORDER_FORM_HEADER = (By.CLASS_NAME, "Order_Header__BZXOb")
+    ORDER_FORM_NAME_INPUT = (By.XPATH, "//input[@placeholder='* Имя']")
+    ORDER_FORM_SURNAME_INPUT = (By.XPATH, "//input[@placeholder='* Фамилия']")
+
     def __init__(self, driver):
         super().__init__(driver)
         self.url = urls.MAIN_PAGE_URL
@@ -48,8 +52,7 @@ class MainPage(BasePage):
         question_locator = self.FAQ_QUESTIONS.get(question_text)
         if question_locator:
             self.scroll_to_element(question_locator)
-            element = self.wait_for_element_clickable(question_locator)
-            element.click()
+            self.click_element(question_locator)
 
     @allure.step("Получить текст ответа на вопрос: '{question_text}'")
     def get_faq_answer_text(self, question_text):
@@ -69,37 +72,30 @@ class MainPage(BasePage):
 
     @allure.step("Нажать верхнюю кнопку 'Заказать'")
     def click_order_button_top(self):
-        button = self.wait_for_element_clickable(self.ORDER_BUTTON_TOP)
-        button.click()
+        self.click_element(self.ORDER_BUTTON_TOP)
         self._wait_for_order_form_opened()
 
     @allure.step("Нажать нижнюю кнопку 'Заказать'")
     def click_order_button_bottom(self):
         self.scroll_to_element(self.ORDER_BUTTON_BOTTOM)
-    
-        button = self.wait_for_element_clickable(self.ORDER_BUTTON_BOTTOM)
-        
-        button.click()
+        self.click_element(self.ORDER_BUTTON_BOTTOM)
         self._wait_for_order_form_opened()
 
     def _wait_for_order_form_opened(self):
-        try:
-            self.wait.until(EC.url_contains("/order"))
-        except:
-            order_form_indicators = [
-                (By.CLASS_NAME, "Order_Header__BZXOb"),
-                (By.XPATH, "//input[@placeholder='* Имя']"),
-                (By.XPATH, "//input[@placeholder='* Фамилия']")]
-            
-            for indicator in order_form_indicators:
-                try:
-                    self.wait_for_element_visible(indicator, timeout=10)
-                    return
-                except:
-                    continue
-            
-            self.driver.refresh()
-            self.wait_for_element_visible((By.CLASS_NAME, "Order_Header__BZXOb"), timeout=10)
+        if self.wait_for_url_contains_any(["/order"], timeout=10):
+            return
+        
+        order_form_indicators = [
+            self.ORDER_FORM_HEADER,
+            self.ORDER_FORM_NAME_INPUT,
+            self.ORDER_FORM_SURNAME_INPUT]
+        
+        for indicator in order_form_indicators:
+            if self.is_element_visible(indicator, timeout=5):
+                return
+        
+        self.driver.refresh()
+        self.wait_for_element_visible(self.ORDER_FORM_HEADER, timeout=10)
 
     @allure.step("Нажать логотип Самоката")
     def click_scooter_logo(self):

@@ -1,6 +1,5 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support import expected_conditions as EC
 from .base_page import BasePage
 import urls
 import allure
@@ -58,7 +57,7 @@ class OrderPage(BasePage):
         for element_locator in form_elements:
             self.wait_for_element_visible(element_locator)
         
-        self.wait.until(lambda driver: driver.find_element(*self.FIRST_NAME_INPUT).is_enabled())
+        self.wait_for_element_clickable(self.FIRST_NAME_INPUT)
 
     @allure.step("Закрыть cookie-баннер")
     def close_cookie_banner(self):
@@ -140,6 +139,7 @@ class OrderPage(BasePage):
         
         self.wait_for_second_page()
 
+    @allure.step("Прокрутить к элементу")
     def scroll_to_element_safe(self, locator_or_element):
         if isinstance(locator_or_element, tuple):
             element = self.find_element(locator_or_element)
@@ -148,12 +148,14 @@ class OrderPage(BasePage):
             
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'center'});", element)
 
+    @allure.step("Дождаться полной кликабельности элемента")
     def wait_for_element_fully_clickable(self, locator, timeout=10):
         element = self.wait_for_element_visible(locator, timeout)
         
         self.wait.until(lambda driver: element.is_displayed() and element.is_enabled() and self._is_element_not_obscured(element))
         return element
 
+    @allure.step("Проверить что элемент не перекрыт")
     def _is_element_not_obscured(self, element):
         try:
             element_rect = element.rect
@@ -165,6 +167,7 @@ class OrderPage(BasePage):
         except:
             return True
 
+    @allure.step("Дождаться загрузки второй страницы формы")
     def wait_for_second_page(self):
         self.wait.until(
             lambda driver: any([
@@ -172,6 +175,7 @@ class OrderPage(BasePage):
                 self._is_element_present_and_visible(self.DATE_INPUT),
                 self._is_element_present_and_visible(self.RENTAL_PERIOD_DROPDOWN)]))
 
+    @allure.step("Проверить наличие и видимость элемента")
     def _is_element_present_and_visible(self, locator):
         try:
             element = self.driver.find_element(*locator)
@@ -223,7 +227,7 @@ class OrderPage(BasePage):
             if calendar and calendar[0].is_displayed():
                 date_field = self.find_element(self.DATE_INPUT)
                 date_field.send_keys(Keys.ESCAPE)
-                self.wait.until(EC.invisibility_of_element_located(self.CALENDAR))
+                self.wait_for_element_not_visible(self.CALENDAR)
         except Exception:
             pass
 

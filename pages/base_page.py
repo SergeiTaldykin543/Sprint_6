@@ -1,5 +1,5 @@
+# base_page.py
 import allure
-import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
@@ -86,8 +86,13 @@ class BasePage:
         element = self.find_element(locator)
         self.driver.execute_script("arguments[0].scrollIntoView(true);", element)
 
+    @allure.step("Заполнить поле {locator} значением {value}")
     def fill_field(self, locator, value):
         field = self.wait_for_element_clickable(locator)
         field.clear()
+        
+        WebDriverWait(self.driver, 5).until(lambda driver: field.get_attribute('value') == '' or field.get_attribute('value') is None)
+        
         field.send_keys(value)
-        time.sleep(0.3)
+        
+        WebDriverWait(self.driver, 5).until(lambda driver: field.get_attribute('value') == str(value))
