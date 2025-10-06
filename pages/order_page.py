@@ -113,7 +113,7 @@ class OrderPage(BasePage):
     def select_metro_station_safe(self, station_name):
         metro_field = self.wait_for_element_clickable(self.METRO_STATION_INPUT)
         
-        self.scroll_to_element_safe(self.METRO_STATION_INPUT)
+        self.scroll_to_element(self.METRO_STATION_INPUT)
         metro_field.click()
         
         self.wait_for_element_visible(self.METRO_DROPDOWN_OPTIONS)
@@ -126,46 +126,18 @@ class OrderPage(BasePage):
         if station_options:
             first_option = station_options[0]
             button = first_option.find_element(*self.METRO_OPTION_BUTTON)
-            self.scroll_to_element_safe(button)
+            self.scroll_to_element(button)
             button.click()
 
     @allure.step("Нажать кнопку 'Далее' (безопасная версия)")
     def click_next_button_safe(self):
         self.close_cookie_banner()
-        self.scroll_to_element_safe(self.NEXT_BUTTON)
+        self.scroll_to_element(self.NEXT_BUTTON)
 
         next_button = self.wait_for_element_fully_clickable(self.NEXT_BUTTON)
         next_button.click()
         
         self.wait_for_second_page()
-
-    @allure.step("Прокрутить к элементу")
-    def scroll_to_element_safe(self, locator_or_element):
-        if isinstance(locator_or_element, tuple):
-            element = self.find_element(locator_or_element)
-        else:
-            element = locator_or_element
-            
-        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center', inline: 'center'});", element)
-
-    @allure.step("Дождаться полной кликабельности элемента")
-    def wait_for_element_fully_clickable(self, locator, timeout=10):
-        element = self.wait_for_element_visible(locator, timeout)
-        
-        self.wait.until(lambda driver: element.is_displayed() and element.is_enabled() and self._is_element_not_obscured(element))
-        return element
-
-    @allure.step("Проверить что элемент не перекрыт")
-    def _is_element_not_obscured(self, element):
-        try:
-            element_rect = element.rect
-            element_center_x = element_rect['x'] + element_rect['width'] / 2
-            element_center_y = element_rect['y'] + element_rect['height'] / 2
-            element_at_point = self.driver.execute_script("return document.elementFromPoint(arguments[0], arguments[1]);",element_center_x, element_center_y)
-
-            return element == element_at_point or element == element_at_point.find_element(By.XPATH, "./ancestor-or-self::*[. = current()]")
-        except:
-            return True
 
     @allure.step("Дождаться загрузки второй страницы формы")
     def wait_for_second_page(self):
@@ -174,14 +146,6 @@ class OrderPage(BasePage):
                 self._is_element_present_and_visible(self.RENTAL_HEADER),
                 self._is_element_present_and_visible(self.DATE_INPUT),
                 self._is_element_present_and_visible(self.RENTAL_PERIOD_DROPDOWN)]))
-
-    @allure.step("Проверить наличие и видимость элемента")
-    def _is_element_present_and_visible(self, locator):
-        try:
-            element = self.driver.find_element(*locator)
-            return element.is_displayed()
-        except:
-            return False
 
     @allure.step("Заполнить информацию об аренде")
     def fill_rental_info(self, date, rental_period, color, comment):
@@ -197,19 +161,19 @@ class OrderPage(BasePage):
 
     @allure.step("Выбрать период аренды: '{rental_period}' (безопасная версия)")
     def select_rental_period_safe(self, rental_period):
-        self.scroll_to_element_safe(self.RENTAL_PERIOD_DROPDOWN)
+        self.scroll_to_element(self.RENTAL_PERIOD_DROPDOWN)
         dropdown = self.wait_for_element_fully_clickable(self.RENTAL_PERIOD_DROPDOWN)
         dropdown.click()
         options = self.wait_for_elements_visible(self.RENTAL_PERIOD_OPTIONS)
         
         for option in options:
             if rental_period in option.text:
-                self.scroll_to_element_safe(option)
+                self.scroll_to_element(option)
                 clickable_option = self.wait_for_element_fully_clickable((By.XPATH, f"//div[contains(@class, 'Dropdown-option') and contains(text(), '{rental_period}')]"))
                 clickable_option.click()
                 return             
         if options:
-            self.scroll_to_element_safe(options[0])
+            self.scroll_to_element(options[0])
             clickable_first_option = self.wait_for_element_fully_clickable(self.RENTAL_PERIOD_OPTIONS)
             clickable_first_option.click()
 
@@ -217,7 +181,7 @@ class OrderPage(BasePage):
     def click_checkbox_safe(self, locator):
         checkbox = self.wait_for_element_fully_clickable(locator)
         if not checkbox.is_selected():
-            self.scroll_to_element_safe(locator)
+            self.scroll_to_element(locator)
             checkbox.click()
 
     @allure.step("Закрыть календарь если открыт")
@@ -234,14 +198,14 @@ class OrderPage(BasePage):
     @allure.step("Нажать кнопку 'Заказать' (безопасная версия)")
     def click_order_button_safe(self):
         self.close_cookie_banner()
-        self.scroll_to_element_safe(self.ORDER_BUTTON)
+        self.scroll_to_element(self.ORDER_BUTTON)
         order_button = self.wait_for_element_fully_clickable(self.ORDER_BUTTON)
         order_button.click()
 
     @allure.step("Подтвердить заказ (безопасная версия)")
     def confirm_order_safe(self):
         self.wait_for_element_visible((By.XPATH, "//div[contains(@class, 'Order_Modal')]"))
-        self.scroll_to_element_safe(self.CONFIRM_ORDER_BUTTON)
+        self.scroll_to_element(self.CONFIRM_ORDER_BUTTON)
         confirm_button = self.wait_for_element_fully_clickable(self.CONFIRM_ORDER_BUTTON)
         confirm_button.click()
         self.wait_for_element_visible(self.SUCCESS_MESSAGE)

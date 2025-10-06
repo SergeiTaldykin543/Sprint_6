@@ -107,7 +107,7 @@ class MainPage(BasePage):
 
     @allure.step("Проверить загрузку главной страницы")
     def is_main_page_loaded(self):
-        return self.driver.current_url == urls.MAIN_PAGE_URL
+        return self.get_current_url() == urls.MAIN_PAGE_URL
 
     @allure.step("Проверить успешность редиректа на Яндекс")
     def is_yandex_redirect_successful(self):
