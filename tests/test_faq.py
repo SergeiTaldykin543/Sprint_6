@@ -10,8 +10,9 @@ class TestFAQ:
     @allure.title('Test FAQ questions')
     @pytest.mark.parametrize('question_data', data.FAQData.QUESTIONS_AND_ANSWERS)
     def test_faq_question_answer(self, driver, question_data):
+        main_page = MainPage(driver)
+        
         with allure.step('Open main page'):
-            main_page = MainPage(driver)
             main_page.open()
         
         with allure.step(f"Click on question: {question_data['question']}"):
